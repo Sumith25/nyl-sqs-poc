@@ -1,0 +1,5 @@
+%dw 2.0
+
+type auto_5a358392_0827_4799_a856_7731e07a4395_Input_Variables_osVar = {|  |} {"typeAlias": "Serializable",
+"typeId": "java.io.Serializable"}
+

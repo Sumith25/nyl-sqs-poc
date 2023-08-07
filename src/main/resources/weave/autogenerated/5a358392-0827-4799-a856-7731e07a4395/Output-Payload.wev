@@ -1,0 +1,19 @@
+%dw 2.0
+
+type auto_5a358392_0827_4799_a856_7731e07a4395_Output_Payload = {|
+  failed?: Array<org_mule_extension_sqs_api_model_BatchResultErrorEntry>, 
+  successful?: Array<String>
+|} {"typeAlias": "BatchResult",
+"class": "org.mule.extension.sqs.api.model.BatchResult",
+"typeId": "org.mule.extension.sqs.api.model.BatchResult"}
+type org_mule_extension_sqs_api_model_BatchResultErrorEntry = {|
+  code?: String, 
+  id?: String, 
+  message?: String, 
+  senderFault?: Boolean {"typeId": "boolean"}
+|} {"typeAlias": "BatchResultErrorEntry",
+"class": "org.mule.extension.sqs.api.model.BatchResultErrorEntry",
+"typeId": "org.mule.extension.sqs.api.model.BatchResultErrorEntry"}
+
+
+

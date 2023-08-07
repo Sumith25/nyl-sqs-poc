@@ -1,0 +1,641 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sc-docgen="http://www.mulesoft.org/schema/mule/sc-docgen"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:sns="http://www.mulesoft.org/schema/mule/sns"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:sqs="http://www.mulesoft.org/schema/mule/sqs" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/sqs http://www.mulesoft.org/schema/mule/sqs/current/mule-sqs.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/sns http://www.mulesoft.org/schema/mule/sns/current/mule-sns.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/sc-docgen http://www.mulesoft.org/schema/mule/sc-docgen/current/mule-sc-docgen.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="be22d822-fc54-4b9d-a047-e8060d84f73a" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="9384f92d-4ab1-404c-b697-8c1c8e9173a6" entryTtl="30" entryTtlUnit="MINUTES"/>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="73626ef3-ba4e-49f3-887f-9cd622745d9e" >
+		<vm:connection />
+		<vm:queues >
+			<vm:queue queueName="atlusTestQueue" maxOutstandingMessages="10" />
+		</vm:queues>
+	</vm:config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="ecec0dea-c731-42d4-b5a1-7a8e79d9d0f3" responseTimeout="10000000">
+		<http:request-connection host="localhost" port="8081" />
+	</http:request-config>
+	<sqs:config name="Amazon_SQS_Configuration_listener" doc:name="Amazon SQS Configuration" doc:id="df314a33-403b-4ba7-97b2-d3e6351af838" >
+		<sqs:basic-connection accessKey='AKIAR5TKEJK4A3OUK4BZ' secretKey='EzmMrpASeRAc8CUFX1gthk4wFHpg1JFOV5DD2eXu' testQueueArn="arn:aws:sqs:us-east-1:132292823736:test-sample-fifo-queue.fifo"/>
+	</sqs:config>
+	<flow name="sqs-demoFlow5" doc:id="6d447050-1c3e-40b5-a8e1-3381891dd7d1" initialState="started">
+		<http:listener doc:name="Listener" doc:id="978d38d4-82fc-4d1c-9a40-8140db637649" config-ref="HTTP_Listener_config" path="awsTest"/>
+		<logger level="INFO" doc:name="Logger" doc:id="da1bd039-1840-42d1-8562-b280196a807f" message="Scheduler Invoked...."/>
+		<set-variable value="#[[]]" doc:name="Set Variable" doc:id="f3291658-8fc8-4891-82d8-7fd827256941" variableName="sets"/>
+		<sqs:get-approximate-number-of-messages doc:name="Get approximate number of messages" doc:id="3c809214-8840-4ad8-9a9e-b6a9c1482cad" config-ref="Amazon_SQS_Configuration_listener" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo"/>
+		<choice doc:name="Choice" doc:id="4d0327e9-5b0a-4145-b946-64ab2c8e08a5" >
+			<when expression="#[payload &gt; 0]">
+				<foreach doc:name="For Each" doc:id="d6a01dba-1994-43aa-ae3d-f946c8b69d0b" collection="#[1 to ceil(payload/10)]">
+					<sqs:read doc:name="Read" doc:id="6d27bb8a-a300-4030-a090-8c366866ef2c" config-ref="Amazon_SQS_Configuration_listener" maxNumberOfMessages="10" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo" waitTime="0" target="qMessages"/>
+					<ee:transform doc:name="Transform Message" doc:id="000d55ef-248a-49a2-b179-36cbc479fb7b" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+vars.qMessages map(item ,index) ->
+{
+	id: item.id,
+	receiptHandle: item.receiptHandle,
+	visibilityTimeout: 120
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="sets" ><![CDATA[%dw 2.0
+output application/json
+var a = vars.sets ++ vars.qMessages
+---
+a]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<choice doc:name="Choice" doc:id="83b8bb6f-0c0c-454e-8632-85bb774eca40" >
+						<when expression="#[sizeOf(vars.qMessages) &gt; 0]">
+							<sqs:change-message-visibility-batch doc:name="Change message visibility batch" doc:id="99b9c125-2568-4bb4-a756-c8bd164319d2" config-ref="Amazon_SQS_Configuration_listener" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo" />
+						</when>
+						<otherwise >
+							<logger level="INFO" doc:name="Logger" doc:id="ef582b05-2055-456f-8399-d368817606fc" message='#["No Message were Read from Queue in Loop: " ++ vars.counter]'/>
+						</otherwise>
+					</choice>
+<!-- [STUDIO:"Invoke static"]										<java:invoke-static doc:name="Invoke static" doc:id="fd6ea73d-2a4d-4ee4-964f-1e604e388f46" class="com.sqs.messages.RecursiveReadQueue" method="readMessages(java.util.ArrayList,java.util.ArrayList)" target="sets">
+						<java:args ><![CDATA[#[{
+	messages: vars.sets as Array<Object>,
+	queMessgages: payload as Array<Object>
+}]]]></java:args>
+					</java:invoke-static> [STUDIO] -->
+					<!-- [STUDIO:"Set Variable"]					<set-variable value="#[payload]" doc:name="Set Variable" doc:id="dbaeff4a-2643-41e3-bf56-3adf70716911" variableName="#['set' ++ vars.counter]"/> [STUDIO] -->
+				</foreach>
+				<ee:transform doc:name="SQS Message" doc:id="cdac83fb-eaf8-4545-b686-4afc7e2ff0d1">
+						<ee:message>
+						</ee:message>
+						<ee:variables>
+						<ee:set-variable variableName="messageBody" ><![CDATA[%dw 2.0
+output application/json
+---
+flatten(vars.sets map(item ,index) ->
+read(item.body,"application/json"))]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				<ee:transform doc:name="ATLUS Payload Format 1" doc:id="c23267f2-76bc-419d-98ee-1c30e9d52f09">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="guids" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.messageBody map(item , index) ->
+	{
+		docReqId: item.meta.contentlist.docproperties[0][?($.name == "RequestID")][0].value,
+		externalDocNumber: item.meta.contentlist.docproperties[0][?($.name == "Id")][0].value	
+	}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<ee:transform doc:name="ATLLUS Requested format" doc:id="97d818d4-4e2b-4d53-b912-34e5b9c2b767">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+vars.guids reduce ((item, accumulator={})
+-> accumulator ++ {(item.docReqId): {
+	externalDocNumber: item.externalDocNumber
+}}
+)
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<try doc:name="Try" doc:id="8468e521-a1d1-46c7-8881-84efbc9e6b50" >
+					<http:request method="POST" doc:name="ATLUS Request" doc:id="b51023ca-cd53-46fb-8d01-ced6b7d5d4b7" config-ref="HTTP_Request_configuration" path="/atlus" target="atlusResponse"/>
+					<error-handler>
+						<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ea6c1c7b-6ccf-4f60-b236-c6952ffd88b0" >
+							<logger level="INFO" doc:name="Logger" doc:id="7e949ef3-8fb1-4862-b19f-40da390a4dac" message="All messages were failed to be processed in ATLUS. Therefore No messages will be deleted from queue."/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+				<ee:transform doc:name="Extract Failed GUIDs from ATLUS" doc:id="f93ffff7-c17e-4ff1-a7c9-eed82bb9bb56">
+							<ee:message>
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+(vars.atlusResponse filter (value,index) ->  (value.status == 0)) map(item,index) ->
+(item - "status")]]></ee:set-payload>
+							</ee:message>
+					<ee:variables >
+					</ee:variables>
+						</ee:transform>
+				<ee:transform doc:name="Remove Failed GUIDs" doc:id="0c513cb4-5fdf-41d7-bdc2-37f1b7e3b2e0">
+					<ee:message>
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var temp = if(sizeOf(payload) > 0)payload map(item, index) -> (item - "text") else []
+---
+vars.messageBody filter (not (temp contains {"contextName": $.meta.contentlist.docproperties[0][?($.name == "RequestID")][0].value}))]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+					</ee:variables>
+				</ee:transform>
+				<ee:transform doc:name="Transform Message" doc:id="1bed3b5e-7c41-45a3-92ca-f4e718e1caab">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="sets" ><![CDATA[%dw 2.0
+output application/json encoding="UTF-8"
+var sArray = payload map(item, index) ->
+write(item,"application/json") 
+---
+if(sizeOf(sArray) > 0) vars.sets filter (sArray contains $.body) else []]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="Flow Reference" doc:id="acdcea83-e5ad-40e7-b859-be15e175c89d" name="delete-messages" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="173b8f6f-0f99-436c-9834-5b250192998b" message="No Messages in Queue"/>
+			</otherwise>
+		</choice>
+<logger level="INFO" doc:name="Logger" doc:id="8bcc3a83-b22c-4cbb-a3c4-38538cdfc55e" message="Flow Ended" />
+		<!-- [STUDIO:"Transform Message"]<ee:transform doc:name="Transform Message" doc:id="09a21209-ffae-45e1-9b6d-51d2e0407e94">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+&#45;&#45;-
+payload map(item, index) ->
+{
+	requestId: payload.body.meta.contentlist[0].docproperties.*name
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="entries"><![CDATA[%dw 2.0
+output application/json
+&#45;&#45;-
+payload map(item,idex) ->
+{
+	"id": item.id,
+	"receiptHandle": item.receiptHandle
+}]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform> [STUDIO] -->
+<!-- [STUDIO:"Mock Atlus call"]		<http:request method="POST" doc:name="Mock Atlus call" doc:id="ec38000e-311f-4aa8-b468-6984ebbd379d" config-ref="HTTP_Request_configuration" path="/atlus" /> [STUDIO] -->
+<!-- [STUDIO:"Delete message batch"]		<sqs:delete-message-batch doc:name="Delete message batch" doc:id="224d2775-087a-4d81-be02-ca62ced3f89a" config-ref="Amazon_SQS_ConfigurationListner" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo" entries="#[vars.entries]">
+					</sqs:delete-message-batch> [STUDIO] -->
+		<!-- [STUDIO:"For Each"]				<foreach doc:name="For Each" doc:id="e66b6c4a-e45b-4f9b-81d6-b4c628adf047" collection="#[payload]">
+			<ee:transform doc:name="Transform Message" doc:id="9200cbda-181e-4b03-a58f-779af8081260">
+			<ee:message>
+				<ee:set-payload><![CDATA[payload.body]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="msgId"><![CDATA[payload.receiptHandle]]></ee:set-variable>
+					<ee:set-variable variableName="messageAttributes" ><![CDATA[payload.messageAttributes]]></ee:set-variable>
+			
+</ee:variables>
+		
+</ee:transform>
+			<logger level="INFO" doc:name="Process each Message" doc:id="8ec3e3b4-2202-4687-850c-4987b28edcbc" message="#[payload]" />
+			<sqs:delete-message doc:name="Delete message" doc:id="c8f41d01-daff-4c36-b6e3-91b5f0feef41" config-ref="Amazon_SQS_ConfigurationListner" receiptHandle="#[vars.msgId]" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo"/>
+		</foreach> [STUDIO] -->
+	
+</flow>
+	<flow name="ATLUS-Listner" doc:id="9805d1f2-e718-4d5a-acb2-3b76295b9917" >
+		<http:listener doc:name="Listener" doc:id="d4b81e60-6a90-4337-9a5e-97903376921e" config-ref="HTTP_Listener_config" path="/atlus" allowedMethods="POST"/>
+		<logger level="INFO" doc:name="Logger" doc:id="4eafda24-7d63-44ca-8838-2f7f8d412fb4" message="ATLUS Flow invoked."/>
+		<vm:publish doc:name="Publish" doc:id="123f0f2c-a363-402e-abb7-c2174f67ceb8" config-ref="VM_Config" queueName="atlusTestQueue"/>
+		<ee:transform doc:name="Transform Message" doc:id="de43d5a8-2f75-4e40-ab69-ac074dff1ea6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+pluck(payload, (value, key, index) -> 
+	{
+		"contextName": key,
+		"status": randomInt(2)
+	}
+)
+]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="tweakLogic" ><![CDATA[randomInt(1)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="846303af-63f0-45f9-9097-ba065413fe59" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(item,index) ->
+if(item.status == 0) item ++ {"text": "Process failed for " ++ item.contextName}
+else item ++ {"text": "Process Success for" ++ item.contextName}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="c8d784a5-c4a4-4469-951e-ecad3fcf7a5b" message="End Flow"/>
+	</flow>
+	<sub-flow name="delete-messages" doc:id="5a358392-0827-4799-a856-7731e07a4395" >
+		<logger level="INFO" doc:name="Logger" doc:id="2b4965f5-2886-46a4-9685-a45e181064c5" message="Delete Messages Subflow is triggered"/>
+		<ee:transform doc:name="Transform Message" doc:id="bd978aad-d1b1-4318-a3c7-24a06e9207ae" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.sets map(item,index) -> {
+	"id": item.id,
+	"receiptHandle": item.receiptHandle
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="fbf17090-05f9-4a2e-a84b-2fbc2cf4de0b" collection="#[payload]" batchSize="10">
+			<sqs:delete-message-batch doc:name="Delete message batch" doc:id="05b96260-45f4-4c27-b484-ab8d1b3ca60e" config-ref="Amazon_SQS_Configuration_listener" entries="#[payload]" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo" />
+		</foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="da049e3a-a0bb-4a06-81ba-73edf68db46b" message="Delete Messages Subflow is triggered"/>
+	</sub-flow>
+	<flow name="sqs-poc-nylFlow" doc:id="cc0bd827-ac66-4f0a-9fe4-203df90ba017" >
+		<http:listener doc:name="Send Messages" doc:id="959119fa-68ea-44c7-9f81-e1d18ba4d26e" config-ref="HTTP_Listener_config" path="/send"/>
+		<logger level="INFO" doc:name="Logger" doc:id="018263b2-7ed7-434b-9d8a-ce5ee72ec7e1" message="Send Message Invoked"/>
+		<ee:transform doc:name="Transform Message" doc:id="e4cc8c6e-dc05-4690-9428-1a359b5aebd3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(item , index) ->
+{
+	body: write(item, "application/json"),
+	deduplicationId: ceil(random() * 1000),
+	delaySeconds: 0,
+	groupId: "Proposal",
+	id: uuid(),
+	messageAttributes: null,
+	receiptHandle: uuid()
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="ae445fcf-4c05-463b-a581-08c141632645" collection="#[payload]" batchSize="10">
+			<sqs:send-message-batch doc:name="Send message batch" doc:id="0eb49111-0105-41eb-a030-9aea63126ff7" config-ref="Amazon_SQS_Configuration_listener" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo" />
+		</foreach>
+	</flow>
+	<flow name="sqs-poc-nylFlow1" doc:id="b9106ef3-8bb9-4e12-bfa8-b91aad389e97" >
+		<scheduler doc:name="Scheduler" doc:id="7b3c9ee2-4077-4487-9cf1-50f1180f79ee" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="100" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Logger" doc:id="51d14f63-ac7a-497b-92a6-ac98a536653d" message="Ino=voked"/>
+		<ee:transform doc:name="Transform Message" doc:id="132cfc2f-7ddf-4e6d-924c-9e02a1512cfa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json encoding = "UTF-8"
+---
+{
+    "status": {
+        "status": "SUCCESS",
+        "description": "Operation is successful"
+    },
+    "meta": {
+        "noOfRows": 1,
+        "hasMoreRows": false,
+        "contentlist": [
+            {
+                "documentClassName": "FJAEnrollmentMaterial",
+                "docproperties": [
+                    {
+                        "name": "Creator",
+                        "value": "Odanwss_Dev",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DateCreated",
+                        "value": "Wed Jan 11 12:04:11 EST 2023",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "LastModifier",
+                        "value": "Odanwss_Dev",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DateLastModified",
+                        "value": "Wed Jan 11 12:04:11 EST 2023",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Id",
+                        "value": "{00CAA185-0000-CF1F-BAC0-CF2DQW1ER53E}",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Name",
+                        "value": "CEM_1_1_98688e14-51ae-48ea-afe1-bff93ad98d25.pdf",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Owner",
+                        "value": "cn=Odanwss_Dev,ou=people,o=administrators,l=nyl,dc=newyorklife,dc=com",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "LockToken",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "LockTimeout",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "LockOwner",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsReserved",
+                        "value": "false",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsCurrentVersion",
+                        "value": "true",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsFrozenVersion",
+                        "value": "false",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsVersioningEnabled",
+                        "value": "true",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "MajorVersionNumber",
+                        "value": "1",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "MinorVersionNumber",
+                        "value": "0",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "VersionStatus",
+                        "value": "1",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ReservationType",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DateCheckedIn",
+                        "value": "Wed Jan 11 12:04:11 EST 2023",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CmIsMarkedForDeletion",
+                        "value": "false",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "StorageLocation",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ContentElementsPresent",
+                        "multiValued": true,
+                        "values": [
+                            "application/pdf"
+                        ]
+                    },
+                    {
+                        "name": "ContentSize",
+                        "value": "250405.0",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "MimeType",
+                        "value": "application/pdf",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DateContentLastAccessed",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ContentRetentionDate",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CurrentState",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsInExceptionState",
+                        "value": "false",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ClassificationStatus",
+                        "value": "0",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IndexationId",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CmIndexingFailureCode",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CompoundDocumentState",
+                        "value": "0",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CmRetentionDate",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DocumentTitle",
+                        "value": "CEM_1_1_98688e14-51ae-48ea-afe1-bff93ad98d25.pdf",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ComponentBindingLabel",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IgnoreRedirect",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "EntryTemplateObjectStoreName",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "EntryTemplateLaunchedWorkflowNumber",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "EntryTemplateId",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Source",
+                        "value": "GBS-SUNPRO-FJA-CEM",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DocumentStatus",
+                        "value": "NEW",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Viewable",
+                        "value": "true",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "OpportunityID",
+                        "value": "112",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "PackageID",
+                        "value": "2",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "RequestID",
+                        "value": "98688e14-51ae-48ea-afe1-bff9112edf5tg",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ContentName",
+                        "multiValued": false
+                    }
+                ]
+            }
+        ]
+    }
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="sqsMessages" ><![CDATA[%dw 2.0
+output application/json encoding = "UTF-8"
+---
+[
+  {
+    "delaySeconds": null,
+    "groupId": null,
+    "deduplicationId": null,
+    "receiptHandle": "AQEBeLqzOtH1DHVAg2XBPCM81qLwQk5TC3R0JTXS7g35LzZHHh2HGs0ZN6UaguVlgy6kvlH9cCrVxJDboFn3dpLqhjrjWh08X2qfyiwBkb4N7bZwkJ4JzL4ztdCNjtpgxLJ9/nGiANOb8GEb2aNSAyewtFbFqmg3Qb/ZDjQ3lmoHJLRw9/2aH+w/8caLPWD4iNMY+kh6Eib/0kocLNotUm4Lj3ndGLGpgXV6HaRg2kUqHM/xYht+WHK2P0wILG726dL0skvQXNWUUxKCeJXiLGJSQeVnjI4LGW9MLJTrkQ5ropk=",
+    "body": "{\n    \"status\": {\n        \"status\": \"SUCCESS\",\n        \"description\": \"Operation is successful\"\n    },\n    \"meta\": {\n        \"noOfRows\": 1,\n        \"hasMoreRows\": false,\n        \"contentlist\": [\n            {\n                \"documentClassName\": \"FJAEnrollmentMaterial\",\n                \"docproperties\": [\n                    {\n                        \"name\": \"Creator\",\n                        \"value\": \"Odanwss_Dev\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DateCreated\",\n                        \"value\": \"Wed Jan 11 12:04:11 EST 2023\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"LastModifier\",\n                        \"value\": \"Odanwss_Dev\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DateLastModified\",\n                        \"value\": \"Wed Jan 11 12:04:11 EST 2023\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Id\",\n                        \"value\": \"{00CAA185-0000-CF1F-BAC0-CF2DQWR56G4E}\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Name\",\n                        \"value\": \"CEM_1_1_98688e14-51ae-48ea-afe1-bff93ad98d25.pdf\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Owner\",\n                        \"value\": \"cn=Odanwss_Dev,ou=people,o=administrators,l=nyl,dc=newyorklife,dc=com\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"LockToken\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"LockTimeout\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"LockOwner\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsReserved\",\n                        \"value\": \"false\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsCurrentVersion\",\n                        \"value\": \"true\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsFrozenVersion\",\n                        \"value\": \"false\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsVersioningEnabled\",\n                        \"value\": \"true\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"MajorVersionNumber\",\n                        \"value\": \"1\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"MinorVersionNumber\",\n                        \"value\": \"0\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"VersionStatus\",\n                        \"value\": \"1\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ReservationType\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DateCheckedIn\",\n                        \"value\": \"Wed Jan 11 12:04:11 EST 2023\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CmIsMarkedForDeletion\",\n                        \"value\": \"false\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"StorageLocation\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ContentElementsPresent\",\n                        \"multiValued\": true,\n                        \"values\": [\n                            \"application/pdf\"\n                        ]\n                    },\n                    {\n                        \"name\": \"ContentSize\",\n                        \"value\": \"250405.0\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"MimeType\",\n                        \"value\": \"application/pdf\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DateContentLastAccessed\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ContentRetentionDate\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CurrentState\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsInExceptionState\",\n                        \"value\": \"false\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ClassificationStatus\",\n                        \"value\": \"0\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IndexationId\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CmIndexingFailureCode\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CompoundDocumentState\",\n                        \"value\": \"0\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CmRetentionDate\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DocumentTitle\",\n                        \"value\": \"CEM_1_1_98688e14-51ae-48ea-afe1-bff93ad98d25.pdf\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ComponentBindingLabel\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IgnoreRedirect\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"EntryTemplateObjectStoreName\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"EntryTemplateLaunchedWorkflowNumber\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"EntryTemplateId\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Source\",\n                        \"value\": \"GBS-SUNPRO-FJA-CEM\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DocumentStatus\",\n                        \"value\": \"NEW\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Viewable\",\n                        \"value\": \"true\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"OpportunityID\",\n                        \"value\": \"111\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"PackageID\",\n                        \"value\": \"1\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"RequestID\",\n                        \"value\": \"98688e14-51ae-48ea-afe1-bff93aas34rf\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ContentName\",\n                        \"multiValued\": false\n                    }\n                ]\n            }\n        ]\n    }\n}",
+    "messageAttributes": {
+      
+    },
+    "id": "0cf1361b-4e59-4168-ad4f-5ed9887e4be6"
+  },
+  {
+    "delaySeconds": null,
+    "groupId": null,
+    "deduplicationId": null,
+    "receiptHandle": "AQEBtwKhxrtSZ1dAHoSs0TqLpjmzXpIrljDzrEJYKdDh7tGpMqc7hHvIwOicS5ujMs2MLf2ng2f2JP22A22iEvxYWf5v+Hm0bXvp4FLwgLNqBSb2BGXP1DFaxqxJjN6CpX0ReGRzG85P/6tqwSKyjuQsCgkRv85GNIzeORCZpM6VQpwNZNpMOKkpTKa5ItagFVpRRQzguKhwSl8/ndJZxAMIk3flAeAnPs+AMb5gxCv8dzKnVWOqvkkdRuWngq9DRfjjKQT2DZ+okMAkn56Mnoss+zQylFW5av1FhmjSBIeleJ8=",
+    "body": "{\n    \"status\": {\n        \"status\": \"SUCCESS\",\n        \"description\": \"Operation is successful\"\n    },\n    \"meta\": {\n        \"noOfRows\": 1,\n        \"hasMoreRows\": false,\n        \"contentlist\": [\n            {\n                \"documentClassName\": \"FJAEnrollmentMaterial\",\n                \"docproperties\": [\n                    {\n                        \"name\": \"Creator\",\n                        \"value\": \"Odanwss_Dev\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DateCreated\",\n                        \"value\": \"Wed Jan 11 12:04:11 EST 2023\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"LastModifier\",\n                        \"value\": \"Odanwss_Dev\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DateLastModified\",\n                        \"value\": \"Wed Jan 11 12:04:11 EST 2023\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Id\",\n                        \"value\": \"{00CAA185-0000-CF1F-BAC0-CF2DQW1ER53E}\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Name\",\n                        \"value\": \"CEM_1_1_98688e14-51ae-48ea-afe1-bff93ad98d25.pdf\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Owner\",\n                        \"value\": \"cn=Odanwss_Dev,ou=people,o=administrators,l=nyl,dc=newyorklife,dc=com\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"LockToken\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"LockTimeout\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"LockOwner\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsReserved\",\n                        \"value\": \"false\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsCurrentVersion\",\n                        \"value\": \"true\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsFrozenVersion\",\n                        \"value\": \"false\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsVersioningEnabled\",\n                        \"value\": \"true\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"MajorVersionNumber\",\n                        \"value\": \"1\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"MinorVersionNumber\",\n                        \"value\": \"0\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"VersionStatus\",\n                        \"value\": \"1\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ReservationType\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DateCheckedIn\",\n                        \"value\": \"Wed Jan 11 12:04:11 EST 2023\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CmIsMarkedForDeletion\",\n                        \"value\": \"false\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"StorageLocation\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ContentElementsPresent\",\n                        \"multiValued\": true,\n                        \"values\": [\n                            \"application/pdf\"\n                        ]\n                    },\n                    {\n                        \"name\": \"ContentSize\",\n                        \"value\": \"250405.0\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"MimeType\",\n                        \"value\": \"application/pdf\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DateContentLastAccessed\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ContentRetentionDate\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CurrentState\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IsInExceptionState\",\n                        \"value\": \"false\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ClassificationStatus\",\n                        \"value\": \"0\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IndexationId\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CmIndexingFailureCode\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CompoundDocumentState\",\n                        \"value\": \"0\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"CmRetentionDate\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DocumentTitle\",\n                        \"value\": \"CEM_1_1_98688e14-51ae-48ea-afe1-bff93ad98d25.pdf\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ComponentBindingLabel\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"IgnoreRedirect\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"EntryTemplateObjectStoreName\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"EntryTemplateLaunchedWorkflowNumber\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"EntryTemplateId\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Source\",\n                        \"value\": \"GBS-SUNPRO-FJA-CEM\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"DocumentStatus\",\n                        \"value\": \"NEW\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"Viewable\",\n                        \"value\": \"true\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"OpportunityID\",\n                        \"value\": \"112\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"PackageID\",\n                        \"value\": \"2\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"RequestID\",\n                        \"value\": \"98688e14-51ae-48ea-afe1-bff9112edf5tg\",\n                        \"multiValued\": false\n                    },\n                    {\n                        \"name\": \"ContentName\",\n                        \"multiValued\": false\n                    }\n                ]\n            }\n        ]\n    }\n}",
+    "messageAttributes": {
+      
+    },
+    "id": "9e63c666-ec72-49ea-b177-75d91496fcb0"
+  }
+]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="6d041798-d3d4-4c87-a0a2-15e26947eab1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var temp = write(payload,"application/json")
+---
+vars.sqsMessages filter (temp contains $.body)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+<!-- [STUDIO:"sqs-poc-nylFlow"]	<flow name="sqs-poc-nylFlow" doc:id="e2deb95b-22ef-4dc6-ab41-9c1490e52f6e" initialState="stopped">
+		<scheduler doc:name="Scheduler" doc:id="db0ce331-d708-4943-a797-41c5c1190a1f" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Logger" doc:id="20524737-b310-464a-ab70-eb0476fb138d" message="Scheduler flow invoked"/>
+		<ee:transform doc:name="Transform Message" doc:id="a124f481-f6dd-40c1-8e6b-8bd493b893e2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+&#45;&#45;-
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="cyberark" ><![CDATA[%dw 2.0
+output application/json
+&#45;&#45;-
+{
+	accesKey: "AKIAR5TKEJK4EGQJKR5X",
+	secretKey: "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"
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="59ba047e-353c-4af9-a73b-5143acb48192" message="Scheduler ended"/>
+	</flow> [STUDIO] -->
+<!-- [STUDIO:"sqs-poc-nylFlow1"]	<flow name="sqs-poc-nylFlow1" doc:id="49a4a0d6-2065-4376-8176-e114271daf6a" initialState="stopped">
+		<sqs:receivemessages doc:name="Receive messages" doc:id="0218f2ba-722a-4c3e-b4bb-fd68939ddc52" config-ref="Amazon_SQS_Configuration_listener" numberOfMessages="10" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo">
+			<redelivery-policy />
+			<reconnect />
+		</sqs:receivemessages>
+		<choice doc:name="Choice" doc:id="beaebdf0-9299-43d5-a0a6-01c8d6b928ce" >
+			<when expression="#[true]">
+				<logger level="INFO" doc:name="Logger" doc:id="75efc4a9-b6c3-4d12-b065-8e522e36a230" message="Connection Successful"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="6489b667-c110-4f79-a235-b20345997572" message="Failed"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="66d8a477-54d4-476e-99e2-a6f43ac143d9" message="SQS Listener Flow invoked"/>
+		<logger level="INFO" doc:name="Logger" doc:id="50d56799-4b0e-4ed1-8bef-4b8c07758773" message="#[payload]"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="1b62d4d6-ed8d-490f-8ada-cbb4406808c7" type="ANY">
+				<logger level="INFO" doc:name="Logger" doc:id="f9789a52-fa99-4ec2-855c-d9528d406ac8" message="#[payload]"/>
+				<logger level="INFO" doc:name="Logger" doc:id="160cecd1-5d5d-485a-9afc-51422b10eb50" message="Error handler Invoked"/>
+			</on-error-continue>
+		</error-handler>
+	</flow> [STUDIO] -->
+<!-- [STUDIO:"sqs-poc-nylFlow2"]	<flow name="sqs-poc-nylFlow2" doc:id="645c9d05-3ec4-4eab-97ce-3ad65a3e78fa" >
+		<http:listener doc:name="Listener" doc:id="a01363de-f4de-4c0e-a03e-4e51facc42fd" config-ref="HTTP_Listener_config" path="snsTest"/>
+		<sns:subscribe protocol="SMS" doc:name="Subscribe" doc:id="ccb8322d-12b5-4d9d-ad6e-bd82fba9a1aa" topicArn="arn:aws:sns:us-east-1:132292823736:my-sample-topic" endpoint="+919686793100"/>
+		<sns:get-subscription-attributes doc:name="Get subscription attributes" doc:id="ce9508cc-c8a2-4752-a14c-9c6260af719a" subscriptionArn="arn:aws:sns:us-east-1:132292823736:my-sample-topic:12755a9d-658f-4005-a376-624f8ecbb25b" />
+		<logger level="INFO" doc:name="Logger" doc:id="ca6c0be8-52a4-40fb-8dff-437cfc87c75a" message="#[payload]"/>
+	</flow> [STUDIO] -->
+<!-- [STUDIO:"sqs-poc-nylFlow1"]	<flow name="sqs-poc-nylFlow1" doc:id="1fb846ac-f48f-4d87-8eb8-649ce5c40b72" initialState="started">
+		<scheduler doc:name="Scheduler" doc:id="98f79b1a-1bb0-4ca3-bf82-eba217e2f4fb" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<set-payload value='#[%dw 2.0&#10;output application/json&#10;&#45;&#45;-&#10;{&#10;	accessKey: "AKIAR5TKEJK4HLIA47BJ",&#10;	secretKey: "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"&#10;	&#10;}]' doc:name="Set Payload" doc:id="3d0c51ec-b95e-4479-b0dc-d5582eec73a5" />
+		<os:store doc:name="Store" doc:id="6619a639-4168-4006-8f31-532c16f111b4" key="cyberArkCreds" objectStore="Object_store"/>
+		<logger level="INFO" doc:name="Logger" doc:id="7a601702-d971-428c-a077-c894d193e4e6" />
+		<os:retrieve doc:name="Retrieve" doc:id="1c40d031-93f9-4d9a-9bcd-df2c0393016f" objectStore="Object_store" key="cyberArkCreds" target="osVar">
+			<os:default-value ><![CDATA[#[""]]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="af8e6792-420b-40c4-886f-69eb05ae3cfa" message="#[payload]"/>
+	</flow> [STUDIO] -->
+<!-- [STUDIO:"sqs-poc-nylFlow"]	<flow name="sqs-poc-nylFlow" doc:id="ebffa593-76e1-49cf-9d9e-d13d1a3f9c41" >
+		<sqs:receivemessages doc:name="Receive messages" doc:id="c7dbe9cf-eec0-45e8-a5c2-97731a2067c6" config-ref="Amazon_SQS_ConfigurationListner" numberOfMessages="10" queueUrl="https://sqs.us-east-1.amazonaws.com/132292823736/test-sample-fifo-queue.fifo" timeUnit="MINUTES">
+			<reconnect frequency="2000000"/>
+		</sqs:receivemessages>
+		<logger level="INFO" doc:name="Logger" doc:id="028434f3-8947-4ab7-a440-6189ffc24230" message='#["SQS is Invoked by Listener: " ++ payload]'/>
+	</flow> [STUDIO] -->
+	
+</mule>

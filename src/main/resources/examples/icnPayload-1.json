@@ -1,0 +1,234 @@
+[
+{
+    "status": {
+        "status": "SUCCESS",
+        "description": "Operation is successful"
+    },
+    "meta": {
+        "noOfRows": 2,
+        "hasMoreRows": false,
+        "contentlist": [
+            {
+                "documentClassName": "FJAEnrollmentMaterial",
+                "docproperties": [
+                    {
+                        "name": "Creator",
+                        "value": "Odanwss_Dev",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DateCreated",
+                        "value": "Wed Jan 11 12:04:11 EST 2023",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "LastModifier",
+                        "value": "Odanwss_Dev",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DateLastModified",
+                        "value": "Wed Jan 11 12:04:11 EST 2023",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Id",
+                        "value": "{00CAA185-0000-CF1F-BAC0-CF2DF73B54F9}",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Name",
+                        "value": "CEM_1_1_98688e14-51ae-48ea-afe1-bff93ad98d25.pdf",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Owner",
+                        "value": "cn=Odanwss_Dev,ou=people,o=administrators,l=nyl,dc=newyorklife,dc=com",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "LockToken",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "LockTimeout",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "LockOwner",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsReserved",
+                        "value": "false",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsCurrentVersion",
+                        "value": "true",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsFrozenVersion",
+                        "value": "false",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsVersioningEnabled",
+                        "value": "true",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "MajorVersionNumber",
+                        "value": "1",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "MinorVersionNumber",
+                        "value": "0",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "VersionStatus",
+                        "value": "1",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ReservationType",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DateCheckedIn",
+                        "value": "Wed Jan 11 12:04:11 EST 2023",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CmIsMarkedForDeletion",
+                        "value": "false",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "StorageLocation",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ContentElementsPresent",
+                        "multiValued": true,
+                        "values": [
+                            "application/pdf"
+                        ]
+                    },
+                    {
+                        "name": "ContentSize",
+                        "value": "250405.0",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "MimeType",
+                        "value": "application/pdf",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DateContentLastAccessed",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ContentRetentionDate",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CurrentState",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IsInExceptionState",
+                        "value": "false",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ClassificationStatus",
+                        "value": "0",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IndexationId",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CmIndexingFailureCode",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CompoundDocumentState",
+                        "value": "0",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "CmRetentionDate",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DocumentTitle",
+                        "value": "CEM_1_1_98688e14-51ae-48ea-afe1-bff93ad98d25.pdf",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ComponentBindingLabel",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "IgnoreRedirect",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "EntryTemplateObjectStoreName",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "EntryTemplateLaunchedWorkflowNumber",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "EntryTemplateId",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Source",
+                        "value": "GBS-SUNPRO-FJA-CEM",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "DocumentStatus",
+                        "value": "NEW",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "Viewable",
+                        "value": "true",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "OpportunityID",
+                        "value": "1",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "PackageID",
+                        "value": "6",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "RequestID",
+                        "value": "98688e14-51ae-48ea-afe1-bff93ad98d39",
+                        "multiValued": false
+                    },
+                    {
+                        "name": "ContentName",
+                        "multiValued": false
+                    }
+                ]
+            }
+           ]
+    }
+}
+]
